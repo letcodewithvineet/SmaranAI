@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 45 37% 96%;
+  --foreground: 222 17% 18%;
+  --card: 43 42% 98%;
+  --card-foreground: 222 17% 18%;
+  --primary: 219 15% 22%;
+  --primary-foreground: 45 37% 96%;
+  --secondary: 39 24% 88%;
+  --secondary-foreground: 222 17% 18%;
+  --muted: 42 20% 90%;
+  --muted-foreground: 223 8% 43%;
+  --accent: 43 47% 57%;
+  --accent-foreground: 222 17% 18%;
+  --border: 39 18% 78%;
+  --input: 39 18% 78%;
+  --ring: 43 47% 57%;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  @apply bg-background text-foreground;
+}
+
+::selection {
+  background: rgba(185, 147, 74, 0.28);
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #memorial-card,
+  #memorial-card * {
+    visibility: visible;
+  }
+
+  #memorial-card {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 720px;
+    min-height: 960px;
+    box-shadow: none !important;
+  }
+}
