@@ -1,32 +1,32 @@
 # SmaranAI
 
-SmaranAI is a Next.js App Router application for digital heritage and multilingual memorial preservation. It helps families create dignified memorial biographies, tribute cards, life timelines, saved memorial records, record-specific memberships, and a context-grounded Memory Vault chat experience.
+SmaranAI is a Next.js App Router application for preserving family memories as dignified digital memorial records. It helps families generate multilingual memorial biographies, save and edit records, create themed tribute cards, explore life timelines, record voice memories, and ask grounded questions through a Memory Vault chat.
 
-The app uses Tailwind CSS, Lucide icons, local shadcn-style components, OpenAI/Gemini AI routes, MongoDB persistence, and Razorpay Test Mode checkout.
+The current implementation uses Next.js 16, React 19, TypeScript, Tailwind CSS, local shadcn-style UI primitives, OpenAI/Gemini generation routes, MongoDB persistence, a transcription proxy, and Razorpay Test Mode checkout for record-specific memberships.
 
 ## Features
 
-- Create Memorial / Bio Generator with name, dates, relation, language, life events, memories, and deceased photo upload.
-- Structured AI tribute generation with JSON validation and safe mock fallback.
-- MongoDB saved records with view, edit, delete, and selected-record synchronization.
-- Generated Tribute section showing the active saved record.
-- Tribute Studio with ceremonial, religious, cultural, professional, and patriotic themes.
-- Record-specific membership theme access: Basic is free, Standard is ₹799, and Gold is ₹999.
-- Razorpay Test Mode checkout with server-side signature verification.
-- Life Timeline synced from the selected saved record.
-- Memory Vault with selected-profile grounding, profile selector, language toggle, quick prompts, typing indicator, and sample profile loader.
-- Multilingual support for English, Hindi, and Gujarati.
+- Create memorial profiles from name, dates, relation, language, life events, memories, and an optional deceased photo.
+- Record voice memories from the browser microphone and append the transcription to the memory notes.
+- Generate structured tribute JSON with OpenAI first, Gemini second, and a mock fallback if both providers are unavailable.
+- Save generated records in MongoDB with view, edit, delete, and selected-record synchronization.
+- Render a generated tribute, life timeline, and printable tribute card from the active saved record.
+- Offer tribute card themes across Classic, Religious, Culture, Profession, and Patriotism groups.
+- Enforce record-specific theme access with Basic, Standard, and Gold memberships.
+- Create Razorpay Test Mode orders and verify signatures server-side before unlocking paid themes.
+- Provide a grounded Memory Vault chat tied to the selected memorial record or the built-in sample grandfather profile.
+- Support English, Hindi, and Gujarati as app-level memorial languages.
 
 ## Tech Stack
 
-- Next.js App Router
+- Next.js App Router 16
 - React 19
 - TypeScript
 - Tailwind CSS
 - Lucide React
 - Radix UI primitives
 - OpenAI SDK
-- Gemini SDK
+- Google Gemini SDK
 - MongoDB
 - Razorpay Checkout
 - Zod
@@ -37,28 +37,30 @@ The app uses Tailwind CSS, Lucide icons, local shadcn-style components, OpenAI/G
 ```text
 app/
   api/
-    chat/route.ts                 Legacy profile-object chat endpoint
-    generate/route.ts             AI memorial profile generation and persistence
-    memory-vault/chat/route.ts    Selected-profile Memory Vault chat endpoint
-    razorpay/order/route.ts       Razorpay Test Mode order endpoint
-    razorpay/verify/route.ts      Razorpay signature verification endpoint
-    records/route.ts              List/create memorial records
-    records/[id]/route.ts         Update/delete memorial records
-  globals.css                     Tailwind theme and print styles
-  layout.tsx                      App metadata and fonts
-  page.tsx                        SmaranAI dashboard UI
+    chat/route.ts                 Legacy profile-object Memory Vault chat endpoint
+    generate/route.ts             AI memorial generation and MongoDB persistence
+    memory-vault/chat/route.ts    Selected-profile grounded Memory Vault chat
+    razorpay/order/route.ts       Razorpay Test Mode order creation
+    razorpay/verify/route.ts      Razorpay signature verification and membership update
+    records/route.ts              List and create memorial records
+    records/[id]/route.ts         Update and delete memorial records
+    transcribe/route.ts           Browser audio transcription proxy
+  globals.css                     Tailwind theme and print-only memorial card styles
+  layout.tsx                      Metadata and Google font setup
+  page.tsx                        Main SmaranAI dashboard UI
 
 components/
   MemoryVault.tsx                 Grounded heritage archive chat UI
   PricingPlans.tsx                Razorpay checkout pricing cards
+  VoiceInputButton.tsx            Microphone selection, recording, and transcription UI
   ui/                             Local shadcn-style UI primitives
 
 lib/
-  mongodb.ts                      MongoDB helpers
+  mongodb.ts                      MongoDB connection and record helpers
   utils.ts                        Shared className helper
 
 types/
-  memorial.ts                     MemorialProfile model and sample profile store
+  memorial.ts                     MemorialProfile types and sample profile data
 ```
 
 ## Environment Variables
@@ -68,7 +70,7 @@ Create `.env.local` in the project root.
 ```env
 OPENAI_API_KEY=your_openai_key
 OPENAI_MODEL=gpt-4.1-mini
-OPENAI_CHAT_MODEL=gpt-4.1-mini
+OPENAI_CHAT_MODEL=gpt-4o-mini
 
 GEMINI_API_KEY=your_gemini_key
 GEMINI_MODEL=gemini-3.6-flash
@@ -78,21 +80,24 @@ MONGO_URL=your_mongodb_atlas_connection_string
 MONGO_LOCAL_URL=mongodb://127.0.0.1:27017/
 MONGODB_DB=virasatAI_db
 MONGODB_COLLECTION=MiniJobPortal
-JWT_SECRET=your_jwt_secret
 
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_your_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_test_key_secret
+
+TRANSCRIBER_API_URL=https://ai-speech-whisper-transcriber.vercel.app/api/transcribe
 ```
 
 Notes:
 
-- `OPENAI_API_KEY` enables live AI generation and Memory Vault chat.
-- Gemini keys are optional fallback provider keys.
-- If AI keys fail or quota is unavailable, generation/chat routes return mock fallback responses.
-- MongoDB variables are required for saved records and record-specific memberships.
-- The database name may still be `virasatAI_db` to preserve existing saved records after the SmaranAI rename.
-- `NEXT_PUBLIC_RAZORPAY_KEY_ID` is used in the browser checkout script.
+- `OPENAI_API_KEY` enables live memorial generation, legacy chat, and Memory Vault chat.
+- `GEMINI_API_KEY` or `GOOGLE_API_KEY` enables Gemini fallback for generation and the legacy chat route.
+- Generation falls back to mock content if OpenAI and Gemini are unavailable.
+- Memory Vault falls back to a grounded mock response if OpenAI is unavailable.
+- MongoDB variables are required for saved records, record editing, deletion, and membership updates.
+- `MONGODB_DB` and `MONGODB_COLLECTION` default to `virasatAI_db` and `MiniJobPortal` to preserve existing data.
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID` is intentionally public for browser checkout.
 - `RAZORPAY_KEY_SECRET` must remain server-side only.
+- `TRANSCRIBER_API_URL` is optional; the app uses the hosted transcription endpoint shown above by default.
 
 ## Install
 
@@ -112,59 +117,42 @@ Open:
 http://localhost:3000
 ```
 
-If you changed `.env.local`, restart the dev server so Next.js reloads the variables.
+Restart the dev server after changing `.env.local` so Next.js reloads environment variables.
 
-## Validate The Project
+## Validate
 
 ```bash
 npm run lint
 npm run build
 ```
 
-Optional dependency audit:
-
-```bash
-npm audit --audit-level=high
-```
-
 ## Manual UI Test Flow
 
 1. Open `http://localhost:3000`.
-2. In Create Memorial / Bio Generator, enter a name, dates, relation, language, key life events, memories, and optionally upload a JPG/PNG/WebP photo.
-3. Save the record.
-4. Confirm the form clears after save and the record appears in Saved Memorial Records.
-5. Select the saved record.
-6. Confirm Generated Tribute, Tribute Studio, Life Timeline, and Memory Vault all reflect the selected record.
-7. In Tribute Studio, confirm Basic only allows Classic themes.
-8. Select Standard or Gold pricing for the active record and complete Razorpay Test Mode checkout.
-9. Confirm paid themes unlock only for that selected record.
-10. Switch to another saved record and confirm it returns to its own membership plan.
-11. In Memory Vault, ask a question from the selected profile or click Load Sample Grandfather Profile.
+2. Enter memorial details in Create Memorial / Bio Generator.
+3. Optionally upload a JPG, PNG, or WebP photo up to 1.5 MB.
+4. Optionally record a voice memory and confirm the transcription is appended to the memories field.
+5. Save the record and confirm it appears in Saved Memorial Records.
+6. Select the saved record and confirm the generated tribute, tribute studio, timeline, and Memory Vault update.
+7. Edit the selected record, save changes, then confirm the list and active preview stay in sync.
+8. Confirm Basic only enables Classic themes.
+9. Select Standard or Gold and complete Razorpay Test Mode checkout for the active record.
+10. Confirm paid themes unlock only for that selected record.
+11. Switch to another saved record and confirm it keeps its own membership plan.
+12. Ask a Memory Vault question about the selected profile or load the sample grandfather profile.
+13. Use Export to PDF in Tribute Studio and verify only the memorial card prints.
 
-## Razorpay Test Mode
+## Memberships
 
-SmaranAI uses Razorpay Checkout for Standard and Gold memberships.
+Memberships are stored on individual MongoDB memorial records.
 
-- Standard: ₹799
-- Gold: ₹999
+| Plan | Price | Theme Access |
+| --- | ---: | --- |
+| Basic | Free | 3 Classic themes |
+| Standard | Rs. 799 | First 10 themes |
+| Gold | Rs. 999 | Full theme library |
 
-Each membership is tied to one saved MongoDB memorial record. The order route requires a `recordId`, and the verify route updates only that record after signature verification succeeds.
-
-Use Razorpay test cards from the Razorpay dashboard documentation while testing in Test Mode.
-
-### Common Razorpay Test Cards
-
-Use these cards only in Razorpay Test Mode.
-
-| Type | Card Network | Card Number | CVV | Expiry |
-| --- | --- | --- | --- | --- |
-| Domestic | Visa | `4111 1111 1111 1111` | Any | Any future date |
-| Domestic | Mastercard | `5267 3181 8797 5449` | Any | Any future date |
-| International | Visa | `4012 8888 8888 1881` | Any | Any future date |
-| International | Mastercard | `5555 5555 5555 4444` | Any | Any future date |
-| Subscription | Visa Credit | `4718 6091 0820 4366` | Any | Any future date |
-| Subscription | Mastercard Debit | `5104 0600 0000 0008` | Any | Any future date |
-| EMI Test | Mastercard | `5241 8100 0000 0000` | Any | Any future date |
+Razorpay order creation requires `planType`, `amount`, and `recordId`. The verify route updates the record only after validating the Razorpay signature.
 
 ## API Smoke Tests
 
@@ -185,7 +173,7 @@ curl -X POST http://localhost:3000/api/generate \
   }'
 ```
 
-Expected fields:
+Expected shape:
 
 ```json
 {
@@ -202,11 +190,14 @@ Expected fields:
     }
   ],
   "inspirationalQuote": "...",
+  "deceasedPhoto": null,
   "recordId": "...",
   "persisted": true,
   "source": "openai"
 }
 ```
+
+`source` may be `openai`, `gemini`, or `mock`. `persisted` is `false` if generation succeeds but MongoDB saving fails.
 
 ### List Records
 
@@ -214,7 +205,7 @@ Expected fields:
 curl http://localhost:3000/api/records?limit=10
 ```
 
-Expected empty response:
+Expected shape:
 
 ```json
 {
@@ -222,7 +213,32 @@ Expected empty response:
 }
 ```
 
-When MongoDB contains records, use one record `_id` for Memory Vault and Razorpay tests.
+### Create Manual Record
+
+```bash
+curl -X POST http://localhost:3000/api/records \
+  -H "Content-Type: application/json" \
+  -d '{
+    "targetLanguage": "English",
+    "source": "manual",
+    "memoryNotes": "Full name: Anaya Mehta",
+    "profile": {
+      "fullName": "Anaya Mehta",
+      "dates": "1948 - 2024",
+      "shortTribute": "A beloved elder remembered with affection.",
+      "biography": "A preserved family biography.",
+      "coreValues": ["Kindness"],
+      "timeline": [
+        {
+          "year": "1948",
+          "title": "Birth and Roots",
+          "description": "Her life journey begins."
+        }
+      ],
+      "inspirationalQuote": "Love continues through memory."
+    }
+  }'
+```
 
 ### Memory Vault Chat
 
@@ -254,13 +270,13 @@ curl -X POST http://localhost:3000/api/memory-vault/chat \
     "messages": [
       {
         "role": "user",
-        "content": "उनके जीवन के मुख्य सिद्धांत क्या थे?"
+        "content": "What were their main life principles?"
       }
     ]
   }'
 ```
 
-Expected response:
+Expected shape:
 
 ```json
 {
@@ -272,7 +288,20 @@ Expected response:
 }
 ```
 
-If OpenAI is unavailable, `source` may be `mock` and the response remains grounded in the selected profile.
+### Transcribe Audio
+
+```bash
+curl -X POST http://localhost:3000/api/transcribe \
+  -F "file=@voice-memory.webm"
+```
+
+Expected shape:
+
+```json
+{
+  "text": "..."
+}
+```
 
 ### Razorpay Order
 
@@ -288,7 +317,7 @@ curl -X POST http://localhost:3000/api/razorpay/order \
   }'
 ```
 
-Expected response:
+Expected shape:
 
 ```json
 {
@@ -298,13 +327,13 @@ Expected response:
 }
 ```
 
-The browser checkout success callback posts `recordId`, `razorpayPaymentId`, `razorpayOrderId`, and `razorpaySignature` to `/api/razorpay/verify`. Membership themes unlock only after server-side verification.
+The browser checkout success callback posts `planType`, `recordId`, `razorpayPaymentId`, `razorpayOrderId`, and `razorpaySignature` to `/api/razorpay/verify`.
 
 ## API Reference
 
 ### `POST /api/generate`
 
-Generates a structured memorial profile from memory notes and attempts to save it to MongoDB.
+Generates a structured memorial profile from `memoryNotes` and `targetLanguage`, then attempts to save it to MongoDB.
 
 Optional `photo` shape:
 
@@ -319,33 +348,33 @@ Optional `photo` shape:
 
 The UI accepts JPG, PNG, and WebP images up to 1.5 MB.
 
+### `POST /api/transcribe`
+
+Accepts multipart form data with a `file` field and proxies it to `TRANSCRIBER_API_URL`.
+
 ### `GET /api/records`
 
-Lists saved memorial records.
-
-Optional query:
-
-```text
-?limit=25
-```
+Lists saved memorial records. Supports `?limit=25`; the route clamps the limit between 1 and 100.
 
 ### `POST /api/records`
 
-Manually stores an existing generated profile in MongoDB.
+Stores an existing profile as a manual MongoDB memorial record with Basic membership.
 
 ### `PUT /api/records/[id]`
 
-Updates a saved memorial record.
+Updates a saved memorial record by MongoDB ObjectId.
 
 ### `DELETE /api/records/[id]`
 
-Deletes a saved memorial record.
+Deletes a saved memorial record by MongoDB ObjectId.
 
 ### `POST /api/memory-vault/chat`
 
-Looks up the selected `MemorialProfile` by ID, injects the verified archive context into the system prompt, and answers only from that context.
+Looks up a saved or sample `MemorialProfile` by `profileId`, injects verified archive context into the system prompt, and answers only from that profile context.
 
-If a profile is not found, returns `404 Not Found`.
+### `POST /api/chat`
+
+Legacy profile-object chat endpoint. It accepts a profile object directly instead of looking up a saved record.
 
 ### `POST /api/razorpay/order`
 
@@ -358,18 +387,13 @@ Allowed combinations:
 
 ### `POST /api/razorpay/verify`
 
-Verifies the Razorpay signature and updates the selected memorial record with:
+Verifies the Razorpay signature and updates the selected memorial record with membership plan, payment ID, order ID, provider, and update timestamp.
 
-- membership plan
-- payment ID
-- order ID
-- provider
-- update timestamp
+## Production Notes
 
-## Notes For Production
-
-- Replace test Razorpay keys with live keys only when ready for production.
-- Add user authentication before allowing public record access or paid membership management.
-- Store large images in object storage for production instead of keeping data URLs in MongoDB.
-- Consider adding Razorpay webhooks for payment reconciliation.
+- Add authentication and authorization before exposing saved records publicly.
+- Move large images from MongoDB data URLs to object storage.
+- Add Razorpay webhooks for payment reconciliation.
+- Replace Razorpay test keys with live keys only when ready for production.
 - Keep `.env.local` out of version control.
+- Review and repair mojibake in source UI strings before production Hindi/Gujarati release.
