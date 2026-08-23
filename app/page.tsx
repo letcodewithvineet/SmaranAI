@@ -43,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import PricingPlans, { type MembershipPlan } from "@/components/PricingPlans";
 import MemoryVault from "@/components/MemoryVault";
+import VoiceInputButton from "@/components/VoiceInputButton";
 import type { MemorialProfile } from "@/types/memorial";
 
 type MemorialForm = {
@@ -393,6 +394,7 @@ export default function Home() {
   const [recordsState, setRecordsState] = useState<
     | { status: "idle"; message: string }
     | { status: "loading"; message: string }
+    | { status: "warning"; message: string }
     | { status: "error"; message: string }
   >({ status: "idle", message: "" });
   const [deceasedPhoto, setDeceasedPhoto] = useState<MemorialPhoto | null>(null);
@@ -460,9 +462,16 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("Unable to load saved records.");
       }
-      const data = (await response.json()) as { records: StoredRecord[] };
+      const data = (await response.json()) as {
+        records: StoredRecord[];
+        warning?: string;
+      };
       setRecords(data.records);
-      setRecordsState({ status: "idle", message: "" });
+      setRecordsState(
+        data.warning
+          ? { status: "warning", message: data.warning }
+          : { status: "idle", message: "" },
+      );
     } catch (error) {
       setRecordsState({
         status: "error",
@@ -557,6 +566,23 @@ export default function Home() {
 
   function updateField(field: keyof MemorialForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+    if (saveState.status !== "idle") {
+      setSaveState({ status: "idle", message: "" });
+    }
+  }
+
+  function handleTranscriptionComplete(text: string) {
+    const transcription = text.trim();
+
+    if (!transcription) return;
+
+    setForm((current) => ({
+      ...current,
+      memories: current.memories.trim()
+        ? `${current.memories.trim()}\n\n${transcription}`
+        : transcription,
+    }));
+
     if (saveState.status !== "idle") {
       setSaveState({ status: "idle", message: "" });
     }
@@ -747,12 +773,14 @@ export default function Home() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(198,163,88,0.18),transparent_34%),linear-gradient(180deg,#f8f4ea,#ece7dd)]">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1 text-sm font-bold text-muted-foreground">
-              <Sparkles className="h-4 w-4 text-[#a97d36]" />
-              Digital heritage and multilingual memorial preservation
+          <div className="min-w-0 max-w-3xl">
+            <div className="mb-3 inline-flex max-w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-1 text-sm font-bold text-muted-foreground">
+              <Sparkles className="h-4 w-4 shrink-0 text-[#a97d36]" />
+              <span className="min-w-0 truncate">
+                Digital heritage and multilingual memorial preservation
+              </span>
             </div>
-            <h1 className="font-serif text-4xl font-semibold tracking-normal text-zinc-850 sm:text-5xl">
+            <h1 className="font-serif text-4xl font-semibold leading-tight tracking-normal text-zinc-850 sm:text-5xl">
               SmaranAI
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-8 text-muted-foreground">
@@ -761,10 +789,10 @@ export default function Home() {
               Gujarati, or English.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid w-full grid-cols-3 gap-2 text-center sm:w-auto">
             {["Hindi", "Gujarati", "English"].map((language) => (
               <div
-                className="rounded-md border border-border bg-card px-4 py-3 shadow-sm"
+                className="rounded-md border border-border bg-card px-2 py-3 shadow-sm sm:px-4"
                 key={language}
               >
                 <Languages className="mx-auto mb-1 h-4 w-4 text-[#a97d36]" />
@@ -784,7 +812,7 @@ export default function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 {selectedRecord
                   ? `Active record: ${selectedRecord.profile.fullName}`
@@ -794,6 +822,7 @@ export default function Home() {
                 type="button"
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => void loadRecords()}
                 disabled={recordsState.status === "loading"}
               >
@@ -805,8 +834,15 @@ export default function Home() {
                 Refresh
               </Button>
             </div>
-            {recordsState.status === "error" ? (
-              <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {recordsState.status === "error" || recordsState.status === "warning" ? (
+              <div
+                className={cn(
+                  "rounded-md border px-3 py-2 text-sm",
+                  recordsState.status === "error"
+                    ? "border-red-300 bg-red-50 text-red-800"
+                    : "border-[#d4b36c] bg-[#fff8e5] text-[#6f5424]",
+                )}
+              >
                 {recordsState.message}
               </div>
             ) : records.length ? (
@@ -814,7 +850,7 @@ export default function Home() {
                 {records.map((record) => (
                   <div
                     className={cn(
-                      "flex min-h-32 gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-[#b9934a] hover:bg-[#fffaf0]",
+                      "flex min-h-32 flex-col gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-[#b9934a] hover:bg-[#fffaf0] sm:flex-row",
                       selectedRecord?._id === record._id &&
                         "border-[#b9934a] bg-[#fff8e5]",
                     )}
@@ -847,7 +883,7 @@ export default function Home() {
                       <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                         {record.profile.shortTribute}
                       </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
                         <Button
                           type="button"
                           size="sm"
@@ -912,7 +948,7 @@ export default function Home() {
           <TabsContent value="create">
             <div
               ref={createSectionRef}
-              className="scroll-mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]"
+              className="scroll-mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]"
             >
               <Card>
                 <CardHeader>
@@ -926,64 +962,64 @@ export default function Home() {
                 <CardContent>
                   <form className="grid gap-5" onSubmit={handleRecordSubmit}>
                     <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Full Name">
-                      <Input
-                        placeholder="e.g. Anaya Mehta"
-                        value={form.fullName}
-                        onChange={(event) =>
-                          updateField("fullName", event.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Relation">
-                      <Input
-                        placeholder="e.g. Grandmother"
-                        value={form.relation}
-                        onChange={(event) =>
-                          updateField("relation", event.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Birth Date">
-                      <Input
-                        type="date"
-                        value={form.birthDate}
-                        onChange={(event) =>
-                          updateField("birthDate", event.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Passing Date">
-                      <Input
-                        type="date"
-                        value={form.passingDate}
-                        onChange={(event) =>
-                          updateField("passingDate", event.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Language">
-                      <Select
-                        value={form.language}
-                        onValueChange={(value) =>
-                          updateField("language", value as MemorialForm["language"])
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="English">English</SelectItem>
-                          <SelectItem value="Hindi">Hindi</SelectItem>
-                          <SelectItem value="Gujarati">Gujarati</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
+                      <Field label="Full Name">
+                        <Input
+                          placeholder="e.g. Anaya Mehta"
+                          value={form.fullName}
+                          onChange={(event) =>
+                            updateField("fullName", event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field label="Relation">
+                        <Input
+                          placeholder="e.g. Grandmother"
+                          value={form.relation}
+                          onChange={(event) =>
+                            updateField("relation", event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field label="Birth Date">
+                        <Input
+                          type="date"
+                          value={form.birthDate}
+                          onChange={(event) =>
+                            updateField("birthDate", event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field label="Passing Date">
+                        <Input
+                          type="date"
+                          value={form.passingDate}
+                          onChange={(event) =>
+                            updateField("passingDate", event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field label="Language">
+                        <Select
+                          value={form.language}
+                          onValueChange={(value) =>
+                            updateField("language", value as MemorialForm["language"])
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="English">English</SelectItem>
+                            <SelectItem value="Hindi">Hindi</SelectItem>
+                            <SelectItem value="Gujarati">Gujarati</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
                     <Field label="Photo of Deceased">
                       <div className="grid gap-3 rounded-lg border border-dashed border-border bg-[#fbf7ee] p-4">
                         {deceasedPhoto ? (
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                             <NextImage
                               alt="Selected deceased portrait preview"
                               className="h-20 w-20 rounded-md border border-border object-cover"
@@ -1039,36 +1075,47 @@ export default function Home() {
                       </div>
                     </Field>
                     <Field label="Key Life Events">
-                    <Textarea
-                      placeholder="Add one milestone per line, e.g. 1982: Opened a community library"
-                      value={form.keyEvents}
-                      onChange={(event) =>
-                        updateField("keyEvents", event.target.value)
-                      }
-                    />
-                  </Field>
-                  <Field label="Memories / Quotes">
-                    <Textarea
-                      placeholder="Add personal memories, rituals, quotes, values, or family stories..."
-                      value={form.memories}
-                      onChange={(event) =>
-                        updateField("memories", event.target.value)
-                      }
-                    />
-                  </Field>
+                      <Textarea
+                        placeholder="Add one milestone per line, e.g. 1982: Opened a community library"
+                        value={form.keyEvents}
+                        onChange={(event) =>
+                          updateField("keyEvents", event.target.value)
+                        }
+                      />
+                    </Field>
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label>Memories / Quotes</Label>
+                      </div>
+                      <VoiceInputButton
+                        onTranscriptionComplete={handleTranscriptionComplete}
+                      />
+                      <Textarea
+                        placeholder="Add personal memories, rituals, quotes, values, or family stories..."
+                        value={form.memories}
+                        onChange={(event) =>
+                          updateField("memories", event.target.value)
+                        }
+                      />
+                    </div>
                     <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
                       <StatusMessage state={saveState} />
-                      <div className="flex gap-2">
+                      <div className="grid gap-2 sm:flex sm:shrink-0">
                         <Button
                           type="button"
                           variant="outline"
+                          className="w-full sm:w-auto"
                           onClick={resetForm}
                           disabled={saveState.status === "saving"}
                         >
                           <RotateCcw className="h-4 w-4" />
                           Clear
                         </Button>
-                        <Button type="submit" disabled={saveState.status === "saving"}>
+                        <Button
+                          type="submit"
+                          className="w-full sm:w-auto"
+                          disabled={saveState.status === "saving"}
+                        >
                           {saveState.status === "saving" ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
@@ -1124,17 +1171,17 @@ export default function Home() {
                       <p className="text-sm font-bold uppercase tracking-normal text-[#d7b66c]">
                         Memorial Page Draft
                       </p>
-                      <h3 className="mt-2 font-serif text-4xl font-semibold leading-tight">
+                      <h3 className="mt-2 break-words font-serif text-3xl font-semibold leading-tight sm:text-4xl">
                         {activeName || "Full Name"}
                       </h3>
                       <p className="mt-2 text-sm text-[#d7ccb8]">{activeDates}</p>
                     </div>
                   </div>
                   <div>
-                    <p className="font-serif text-2xl leading-9">
+                    <p className="break-words font-serif text-xl leading-8 sm:text-2xl sm:leading-9">
                       {tributeLines[activeLanguage].title}
                     </p>
-                    <p className="mt-4 leading-8 text-[#eee5d4]">
+                    <p className="mt-4 break-words leading-8 text-[#eee5d4]">
                       {activeShortTribute}
                     </p>
                   </div>
@@ -1168,7 +1215,7 @@ export default function Home() {
                     </div>
                   ) : null}
                   <div className="border-t border-[#f8f1e3]/15 pt-5">
-                    <p className="font-serif text-2xl leading-9 text-[#d7b66c]">
+                    <p className="break-words font-serif text-xl leading-8 text-[#d7b66c] sm:text-2xl sm:leading-9">
                       {activeQuote}
                     </p>
                   </div>
@@ -1178,7 +1225,7 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="studio">
-            <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+            <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
               <Card>
                 <CardHeader>
                   <CardTitle>Tribute Studio</CardTitle>
@@ -1191,8 +1238,8 @@ export default function Home() {
                   <div className="grid gap-2">
                     <Label>Membership access</Label>
                     <div className="rounded-md border border-[#d7b66c]/60 bg-[#fff8e5] p-3 text-sm leading-6 text-[#5f461d]">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
                           <p className="font-bold">
                             {membershipPlan} plan active
                           </p>
@@ -1246,10 +1293,10 @@ export default function Home() {
                                 key={item}
                                 disabled={!accessibleThemes.includes(item)}
                               >
-                                <span className="flex w-full items-center justify-between gap-3">
-                                  <span>{item}</span>
+                                <span className="flex w-full min-w-0 items-center justify-between gap-3">
+                                  <span className="min-w-0 truncate">{item}</span>
                                   {!accessibleThemes.includes(item) ? (
-                                    <span className="text-xs text-muted-foreground">
+                                    <span className="shrink-0 text-xs text-muted-foreground">
                                       {getRequiredPlanLabel(item)}
                                     </span>
                                   ) : null}
@@ -1264,7 +1311,7 @@ export default function Home() {
                       {membershipPlan} plan active: {activeSubscription.limitLabel}.
                     </p>
                   </Field>
-                  <Button onClick={() => window.print()}>
+                  <Button className="w-full" onClick={() => window.print()}>
                     <Download className="h-4 w-4" />
                     Export to PDF
                   </Button>
@@ -1274,12 +1321,12 @@ export default function Home() {
               <article
                 id="memorial-card"
                 className={cn(
-                  "mx-auto min-h-[760px] w-full max-w-2xl rounded-lg border-2 p-7 shadow-soft-gold sm:p-10",
+                  "mx-auto min-h-[560px] w-full max-w-2xl rounded-lg border-2 p-5 shadow-soft-gold sm:min-h-[760px] sm:p-10",
                   activeTheme.card,
                   activeTheme.frame,
                 )}
               >
-                <div className="flex items-center justify-between border-b border-current/20 pb-5">
+                <div className="flex items-center justify-between gap-4 border-b border-current/20 pb-5">
                   <span className={cn("text-sm font-bold", activeTheme.accent)}>
                     SmaranAI Memorial
                   </span>
@@ -1287,11 +1334,11 @@ export default function Home() {
                     {activeTheme.motif}
                   </span>
                 </div>
-                <div className="py-12 text-center">
+                <div className="py-8 text-center sm:py-12">
                   {activePhoto ? (
                     <NextImage
                       alt="Deceased portrait"
-                      className="mx-auto mb-7 h-32 w-32 rounded-full border-2 border-current/25 object-cover p-1"
+                      className="mx-auto mb-7 h-24 w-24 rounded-full border-2 border-current/25 object-cover p-1 sm:h-32 sm:w-32"
                       height={128}
                       src={activePhoto.dataUrl}
                       unoptimized
@@ -1301,19 +1348,19 @@ export default function Home() {
                   <p className={cn("text-sm font-bold uppercase", activeTheme.accent)}>
                     In loving memory of
                   </p>
-                  <h2 className="mt-4 font-serif text-5xl font-semibold leading-tight">
+                  <h2 className="mt-4 break-words font-serif text-3xl font-semibold leading-tight sm:text-5xl">
                     {activeName || "Full Name"}
                   </h2>
                   <p className="mt-4 text-sm">{activeDates}</p>
-                  <p className="mx-auto mt-8 max-w-xl text-lg leading-9">
+                  <p className="mx-auto mt-8 max-w-xl break-words text-base leading-8 sm:text-lg sm:leading-9">
                     {activeBiography}
                   </p>
                 </div>
                 <div className="border-t border-current/20 pt-6">
-                  <p className={cn("font-serif text-2xl", activeTheme.accent)}>
+                  <p className={cn("break-words font-serif text-xl sm:text-2xl", activeTheme.accent)}>
                     {activeQuote}
                   </p>
-                  <p className="mt-5 leading-8 opacity-85">
+                  <p className="mt-5 break-words leading-8 opacity-85">
                     {activeProfile?.shortTribute ?? form.memories}
                   </p>
                 </div>
@@ -1332,7 +1379,7 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="relative mx-auto max-w-3xl pl-8">
+                <div className="relative mx-auto max-w-3xl pl-6 sm:pl-8">
                   <div className="absolute bottom-6 left-3 top-2 w-px bg-[#b9934a]" />
                   {timeline.map((item, index) => (
                     <div className="relative pb-9" key={`${item.year}-${index}`}>
@@ -1340,7 +1387,7 @@ export default function Home() {
                       <p className="text-sm font-bold text-[#9b7436]">
                         {item.year}
                       </p>
-                      <h3 className="mt-1 font-serif text-2xl">
+                      <h3 className="mt-1 break-words font-serif text-xl sm:text-2xl">
                         {item.title ??
                           (index === 0
                             ? "Birth and Roots"
@@ -1348,7 +1395,7 @@ export default function Home() {
                               ? "Legacy Preserved"
                               : "Life Milestone")}
                       </h3>
-                      <p className="mt-2 leading-7 text-muted-foreground">
+                      <p className="mt-2 break-words leading-7 text-muted-foreground">
                         {item.text}
                       </p>
                     </div>

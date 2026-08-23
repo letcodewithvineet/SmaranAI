@@ -288,10 +288,10 @@ function PricingPlansContent({
               )}
               key={plan.name}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-serif text-xl font-semibold">
+                    <h3 className="break-words font-serif text-xl font-semibold">
                       {plan.title}
                     </h3>
                     {plan.badge ? (
@@ -300,7 +300,7 @@ function PricingPlansContent({
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  <p className="mt-1 break-words text-sm leading-6 text-muted-foreground">
                     {plan.description}
                   </p>
                 </div>
@@ -322,7 +322,7 @@ function PricingPlansContent({
                     key={feature}
                   >
                     <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-[#7a693f]" />
-                    <span>{feature}</span>
+                    <span className="break-words">{feature}</span>
                   </div>
                 ))}
               </div>

@@ -47,8 +47,11 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("MongoDB records lookup failed", error);
     return NextResponse.json(
-      { error: "Unable to fetch memorial records." },
-      { status: 503 },
+      {
+        records: [],
+        warning: "Saved records are temporarily unavailable.",
+      },
+      { status: 200 },
     );
   }
 }

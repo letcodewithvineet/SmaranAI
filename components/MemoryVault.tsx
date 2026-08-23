@@ -241,20 +241,20 @@ export default function MemoryVault({
     : 0;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
       <Card className="overflow-hidden">
         <CardHeader className="border-b border-border bg-[#fbf7ee]">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Memory Vault</CardTitle>
               <CardDescription>
                 Select a saved record to ground the archive chat.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid gap-2 sm:flex sm:flex-wrap">
               {(Object.keys(languageLabels) as MemorialLanguage[]).map((item) => (
                 <Button
-                  className="h-9"
+                  className="h-9 w-full sm:w-auto"
                   key={item}
                   type="button"
                   size="sm"
@@ -308,6 +308,7 @@ export default function MemoryVault({
             </Select>
 
             <Button
+              className="w-full whitespace-normal text-left lg:w-auto"
               type="button"
               variant="outline"
               onClick={loadSampleProfile}
@@ -321,11 +322,11 @@ export default function MemoryVault({
             <div className="rounded-md border border-[#d7b66c]/70 bg-[#fff8e5] px-4 py-3 text-sm leading-6 text-[#5f461d]">
               <div className="flex items-start gap-2">
                 <ShieldCheck className="mt-1 h-4 w-4 shrink-0" />
-                <div>
-                  <p className="font-bold">
+                <div className="min-w-0">
+                  <p className="break-words font-bold">
                     Grounded in: {activeProfile.fullName}&apos;s Heritage Vault
                   </p>
-                  <p className="text-xs">
+                  <p className="break-words text-xs">
                     {verifiedMemoryCount} verified memories · {activeProfile.relation} · {activeProfile.dates}
                   </p>
                 </div>
@@ -340,7 +341,7 @@ export default function MemoryVault({
           <div className="flex flex-wrap gap-2">
             {quickPrompts[language].map((prompt) => (
               <Button
-                className="h-auto justify-start whitespace-normal rounded-md border-[#d7b66c]/60 bg-card px-3 py-2 text-left text-xs leading-5"
+                className="h-auto max-w-full justify-start whitespace-normal rounded-md border-[#d7b66c]/60 bg-card px-3 py-2 text-left text-xs leading-5"
                 disabled={!activeProfile || isTyping}
                 key={prompt}
                 type="button"
@@ -354,7 +355,7 @@ export default function MemoryVault({
           </div>
 
           <div
-            className="flex h-[460px] flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-[#fbf7ee] p-4"
+            className="flex h-[360px] flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-[#fbf7ee] p-3 sm:h-[460px] sm:p-4"
             ref={feedRef}
           >
             {messages.length === 0 ? (
@@ -367,7 +368,7 @@ export default function MemoryVault({
             {messages.map((message) => (
               <div
                 className={cn(
-                  "max-w-[86%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm",
+                  "max-w-[92%] break-words rounded-lg px-4 py-3 text-sm leading-6 shadow-sm sm:max-w-[86%]",
                   message.role === "user"
                     ? "ml-auto bg-[#2f3437] text-[#fffaf0]"
                     : "border border-[#d7b66c]/50 bg-card text-foreground",
@@ -379,7 +380,7 @@ export default function MemoryVault({
             ))}
 
             {isTyping ? (
-              <div className="max-w-[86%] rounded-lg border border-[#d7b66c]/50 bg-card px-4 py-3 text-sm leading-6 text-muted-foreground shadow-sm">
+              <div className="max-w-[92%] break-words rounded-lg border border-[#d7b66c]/50 bg-card px-4 py-3 text-sm leading-6 text-muted-foreground shadow-sm sm:max-w-[86%]">
                 <span className="inline-flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Memory Vault is reading the preserved archive...
@@ -394,7 +395,7 @@ export default function MemoryVault({
             </div>
           ) : null}
 
-          <form className="flex gap-3" onSubmit={handleSubmit}>
+          <form className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-3" onSubmit={handleSubmit}>
             <Input
               aria-label="Ask the Memory Vault"
               disabled={!activeProfile || isTyping}
@@ -431,7 +432,7 @@ export default function MemoryVault({
         </CardHeader>
         <CardContent className="grid gap-3">
           <Button
-            className="justify-start"
+            className="w-full justify-start"
             disabled={messages.length === 0 && !input}
             type="button"
             variant="outline"
@@ -440,7 +441,7 @@ export default function MemoryVault({
             <RefreshCw className="h-4 w-4" />
             Clear chat history
           </Button>
-          <div className="rounded-md border border-border bg-[#fbf7ee] p-4 text-sm leading-7 text-muted-foreground">
+          <div className="break-words rounded-md border border-border bg-[#fbf7ee] p-4 text-sm leading-7 text-muted-foreground">
             <BookOpen className="mb-2 h-5 w-5 text-[#9b7436]" />
             The Vault uses the selected profile&apos;s name, dates, relationship, biography, values, timeline, and preserved stories. If a detail is missing, it should invite the family to record it.
           </div>
